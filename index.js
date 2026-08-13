@@ -9,6 +9,7 @@ const {
 const db = require('./utils/database');
 const games = require('./utils/gameManager');
 const { drawWheel } = require('./utils/wheel');
+const { drawLobbyBanner } = require('./utils/banner');
 const { commands } = require('./deploy-commands');
 const { REST, Routes } = require('discord.js');
 
@@ -109,9 +110,13 @@ async function startLobby(interaction) {
     avatarURL: interaction.user.displayAvatarURL({ extension: 'png', size: 128 }),
   });
 
-  await interaction.reply({ embeds: [lobbyEmbed(game)], components: lobbyComponents() });
+  const bannerBuf = await drawLobbyBanner();
+  const bannerFile = new AttachmentBuilder(bannerBuf, { name: 'banner.png' });
+
+  await interaction.reply({ embeds: [lobbyEmbed(game)], files: [bannerFile], components: lobbyComponents() });
   const msg = await interaction.fetchReply();
   game.messageId = msg.id;
+  game.bannerAttached = true;
 
   const timer = setInterval(async () => {
     const g = games.get(channelId);
@@ -135,6 +140,7 @@ function lobbyEmbed(game) {
   return new EmbedBuilder()
     .setColor(COLOR)
     .setTitle('🎡 روليت — Infinity Games')
+    .setImage('attachment://banner.png')
     .setDescription(
       `**عدد اللاعبين:** ${game.players.size}/${game.maxPlayers}\n` +
       `**تبدأ اللعبة خلال:** ${remaining} ثانية\n` +
@@ -149,6 +155,12 @@ function lobbyComponents() {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('lobby:join').setLabel('الانضمام').setEmoji('🎮').setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId('lobby:leave').setLabel('الانسحاب').setEmoji('🚪').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('lobby:shop').setLabel('متجر الخصائص').setEmoji('🛒').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('lobby:leaderboard').setLabel('المتصدرين').setEmoji('🏅').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('lobby:inventory').setLabel('الحقيبة').setEmoji('🎒').setStyle(ButtonStyle.Secondary),
+    ),
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('lobby:stats').setLabel('احصائياتي').setEmoji('📊').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('lobby:start').setLabel('بدء الآن').setEmoji('⏩').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId('lobby:cancel').setLabel('إلغاء').setEmoji('❌').setStyle(ButtonStyle.Danger),
     ),
@@ -204,6 +216,12 @@ async function handleLobbyButton(interaction, action) {
     await interaction.reply({ content: '❌ تم إلغاء اللعبة.' });
     return interaction.message.edit({ components: [] }).catch(() => {});
   }
+
+  // ---- أزرار سريعة إضافية (متجر / متصدرين / حقيبة / إحصائيات) ----
+  if (action === 'shop') return showShop(interaction);
+  if (action === 'leaderboard') return showLeaderboard(interaction);
+  if (action === 'inventory') return showInventory(interaction);
+  if (action === 'stats') return showPoints(interaction);
 }
 
 // ============================================================
