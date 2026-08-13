@@ -10,6 +10,20 @@ const db = require('./utils/database');
 const games = require('./utils/gameManager');
 const { drawWheel } = require('./utils/wheel');
 
+// ============================================================
+// سيرفر HTTP وهمي بسيط — فقط عشان يرضي منصات الاستضافة
+// (مثل Render) اللي تطلب فتح بورت حتى لو البوت لا يحتاجه فعلياً.
+// لا يؤثر على عمل البوت، مجرد "نبضة حياة" (health check) بسيطة.
+// ============================================================
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('🎡 بوت الروليت شغال تمام!');
+}).listen(PORT, () => {
+  console.log(`🌐 سيرفر الفحص الصحي شغال على المنفذ ${PORT}`);
+});
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
   partials: [Partials.Channel],
