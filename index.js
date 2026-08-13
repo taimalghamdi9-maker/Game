@@ -9,6 +9,8 @@ const {
 const db = require('./utils/database');
 const games = require('./utils/gameManager');
 const { drawWheel } = require('./utils/wheel');
+const { commands } = require('./deploy-commands');
+const { REST, Routes } = require('discord.js');
 
 // ============================================================
 // سيرفر HTTP وهمي بسيط — فقط عشان يرضي منصات الاستضافة
@@ -32,8 +34,26 @@ const client = new Client({
 const COLOR = 0x9b8fd6;
 const WIN_POINTS = 1; // نقطة لكل فوز (يمكن تعديلها)
 
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
   console.log(`🎡 تم تسجيل الدخول باسم ${client.user.tag}`);
+
+  // تسجيل أوامر السلاش تلقائياً كل مرة يشتغل فيها البوت
+  // (يغني عن تنفيذ npm run deploy يدوياً — مفيد بمنصات ما تعطي وصول Shell)
+  try {
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    const clientId = process.env.CLIENT_ID || client.user.id;
+    const guildId = process.env.GUILD_ID;
+
+    if (guildId) {
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+      console.log(`✅ تم تسجيل ${commands.length} أوامر تلقائياً على السيرفر ${guildId}.`);
+    } else {
+      await rest.put(Routes.applicationCommands(clientId), { body: commands });
+      console.log(`✅ تم تسجيل ${commands.length} أوامر تلقائياً بشكل عالمي.`);
+    }
+  } catch (err) {
+    console.error('❌ فشل تسجيل الأوامر تلقائياً:', err);
+  }
 });
 
 // ============================================================
