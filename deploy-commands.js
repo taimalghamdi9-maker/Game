@@ -37,21 +37,25 @@ const commands = [
     .setDescription('اعرض الأغراض اللي معك بمخزونك'),
 ].map(c => c.toJSON());
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+module.exports = { commands };
 
-(async () => {
-  try {
-    const clientId = process.env.CLIENT_ID;
-    const guildId = process.env.GUILD_ID;
+// إذا تم تشغيل هذا الملف مباشرة (node deploy-commands.js) سجّل الأوامر يدوياً
+if (require.main === module) {
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  (async () => {
+    try {
+      const clientId = process.env.CLIENT_ID;
+      const guildId = process.env.GUILD_ID;
 
-    if (guildId) {
-      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
-      console.log(`✅ تم تسجيل ${commands.length} أوامر على السيرفر ${guildId} (تحديث فوري).`);
-    } else {
-      await rest.put(Routes.applicationCommands(clientId), { body: commands });
-      console.log(`✅ تم تسجيل ${commands.length} أوامر عالمياً (قد تأخذ حتى ساعة للظهور).`);
+      if (guildId) {
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+        console.log(`✅ تم تسجيل ${commands.length} أوامر على السيرفر ${guildId} (تحديث فوري).`);
+      } else {
+        await rest.put(Routes.applicationCommands(clientId), { body: commands });
+        console.log(`✅ تم تسجيل ${commands.length} أوامر عالمياً (قد تأخذ حتى ساعة للظهور).`);
+      }
+    } catch (err) {
+      console.error('❌ فشل تسجيل الأوامر:', err);
     }
-  } catch (err) {
-    console.error('❌ فشل تسجيل الأوامر:', err);
-  }
-})();
+  })();
+}
